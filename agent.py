@@ -16,8 +16,11 @@ class Agent:
         self.error = error
         self.lexicon = lexicon
 
+        if level > 0 and level-1 not in self.agents:
+            self.agents[level-1] = self.__class__(level-1, lexicon, error)
         if level not in self.agents:
             self.agents[level] = self
+
 
     @lru_cache(maxsize=None)
     def speakdist(self, referent):
