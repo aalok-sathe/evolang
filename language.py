@@ -23,7 +23,7 @@ class LexicalEntry:
             self.meaning = sortuple(meanings)
         else:
             self.meaning = sortuple(meanings[0])
-    
+
     def __str__(self):
         ''' str repr
         '''
@@ -39,12 +39,13 @@ class LexicalEntry:
 
 class Lexicon:
     # lexicon = defaultdict(set)
-    lexicon = dict()
+    lexicon = None
 
     def __init__(self, lexical_entries):
         ''' initialize a lexicon optionally from a dictionary mapping
             word->meaning
         '''
+        self.lexicon = dict()
         for entry in lexical_entries:
             # self.lexicon[entry.word].add(entry)
             self.lexicon[entry.word] = entry
@@ -63,6 +64,14 @@ class Lexicon:
         # self.lexicon[entry.word].discard(entry)
         self.lexicon[entry.word] = entry
 
+    def __getitem__(self, word):
+        '''
+        '''
+        try:
+            return self.lexicon[word]
+        except KeyError:
+            return LexicalEntry(None, 0)
+
     def __iter__(self):
         ''' iterator over LexicalEntry objects
         '''
@@ -77,7 +86,7 @@ class Lexicon:
         ''' string representation of the lexicon
         '''
         return '\n'.join(str(e) for e in self)
-        
+
     def possible_words(self):
         ''' return a generator over all the words we know of
         '''
@@ -94,9 +103,9 @@ class Lexicon:
         '''
         seen = set()
         for word in self.lexicon:
-            if word not in seen:
-                seen.add(word)
-                for m in self.lexicon[word].meaning:
+            for m in self.lexicon[word].meaning:
+                if m not in seen:
+                    seen.add(m)
                     yield m
-            else:
-                continue
+                else:
+                    continue
