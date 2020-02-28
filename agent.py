@@ -3,6 +3,7 @@
 from utils import *
 from language import LexicalEntry, Lexicon
 from functools import lru_cache, partial
+import numpy as np
 
 class Agent:
     agents = dict() # level -> instance
@@ -40,7 +41,6 @@ class Agent:
                     emission += [log(self.error)] # otherwise it is (very) unlikely to be used
             else:
                 listener = self.agents[self.level-1]
-                print('DEBUG listener level', self.level-1, listener.level)
                 dist = listener.listendist(entry.word)
                 emission += [log(dist[referent])]
 
@@ -65,7 +65,6 @@ class Agent:
             if self.level == 0: # literal listener
                 refprobs += [log(1-self.error) if r in entry.meaning else log(self.error)]
             else:
-                print('DEBUG I\'m pragmatic (listener)!', word)
                 speaker = self.agents[self.level]
                 dist = speaker.speakdist(r)
                 refprobs += [log(dist[word])]
@@ -74,3 +73,25 @@ class Agent:
         lnorm = {itor[i]: lprob for i, lprob in enumerate(lnorm)}
 
         return logprobs_to_probs(lnorm)
+
+    def speak(self, ref):
+        '''
+        infers a referent upon hearing a word based on the distribution
+        (non deterministic method)
+        '''
+        dist = self.speakdist(ref)
+        itow = {i: w for i, w in enumerate(dist)}
+        probs = [dist[w] for i, w in itow.items()]
+        [i] = np.random.choice([*itow.keys()], 1, p=probs)
+        return itow[i]
+
+    def listen(self, word):
+        '''
+        infers a referent upon hearing a word based on the distribution
+        (non deterministic method)
+        '''
+        dist = self.listendist(word)
+        itor = {i: r for i, r in enumerate(dist)}
+        probs = [dist[r] for i, r in itor.items()]
+        [i] = np.random.choice([*itor.keys()], 1, p=probs)
+        return itor[i]
