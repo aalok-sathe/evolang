@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
+from collections import Counter, defaultdict
 
 from utils import *
 from language import Lexicon, LexicalEntry
@@ -46,6 +47,13 @@ def main():
     word = 'word1'
     print('And suppose pragmatic listener 1 heard word={}'.format(word))
     print(a1.listendist(word), '\n')
+
+    outcomes = defaultdict(list)
+    for trials in range(1000):
+        for i in lexicon.possible_referents():
+            outcomes[i] += ['meant: {}, inferred: {}'.format(i, a1.listen(a1.speak(i)))]
+    for i in lexicon.possible_referents():
+        print(Counter(outcomes[i]))
 
 if __name__ == '__main__':
     parser = ArgumentParser()
