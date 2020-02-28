@@ -11,6 +11,8 @@ from agent import Agent
 def main():
     '''
     '''
+    print('='*64)
+
     speakers = []
     listeners = []
 
@@ -24,36 +26,46 @@ def main():
 
     print('Lexicon:')
     print([item for item in lexicon])
-    print('-'*64)
+    print('='*32)
     print()
 
-    a0 = Agent(0, lexicon)
-    tgt = 0
-    print('Emission probabilities of s0 to speak target={}:'.format(tgt))
-    print(a0.speakdist(tgt))
+    # a0 = Agent(0, lexicon)
+    # tgt = 0
+    # print('Emission probabilities of s0 to speak target={}:'.format(tgt))
+    # print(a0.speakdist(tgt))
+    #
+    # # l0 = Agent(0, lexicon=lexicon)
+    # word = 'word2'
+    # print('Listener probabilities of l0 on hearing word={}:'.format(word))
+    # print(a0.listendist(word))
 
-    # l0 = Agent(0, lexicon=lexicon)
-    word = 'word2'
-    print('Listener probabilities of l0 on hearing word={}:'.format(word))
-    print(a0.listendist(word))
+    for level in reversed(range(1, 10)):
+        print('-'*64)
+        print('Speaker level:\t{}'.format(level))
+        s = Agent(level, lexicon)
+        print('Listener level:\t{}'.format(level-1))
+        l = Agent(level-1, lexicon)
 
-    print()
-    print('Now, we define a level 1 agent')
-    a1 = Agent(1, lexicon)
+        for tgt in lexicon.possible_referents():
+            print('Speaker {} goal:\t{}'.format(level, tgt))
+            print('\t', s.speakdist(tgt))
 
-    print('Suppose pragmatic speaker 1 wants to convey target={}'.format(tgt))
-    print(a1.speakdist(tgt), '\n')
+        print()
+        for word in lexicon.possible_words():
+            print('Listener {} hears:\t{}'.format(level-1, word))
+            print('\t', l.listendist(word))
 
-    word = 'word1'
-    print('And suppose pragmatic listener 1 heard word={}'.format(word))
-    print(a1.listendist(word), '\n')
+        print()
+        trials = 1000
+        print('Some monte-carlo over {} runs'.format(trials))
+        outcomes = defaultdict(list)
+        for trial in range(trials):
+            for r in lexicon.possible_referents():
+                outcomes[r] += ['tgt: {}, act: {}'.format(r, l.listen(s.speak(r)))]
+        for r in lexicon.possible_referents():
+            print('\t', Counter(outcomes[r]))
 
-    outcomes = defaultdict(list)
-    for trials in range(1000):
-        for i in lexicon.possible_referents():
-            outcomes[i] += ['meant: {}, inferred: {}'.format(i, a1.listen(a1.speak(i)))]
-    for i in lexicon.possible_referents():
-        print(Counter(outcomes[i]))
+    print('='*64)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
