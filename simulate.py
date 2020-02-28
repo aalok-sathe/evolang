@@ -16,7 +16,7 @@ def main():
     speakers = []
     listeners = []
 
-    lexdict = [({0}, 'word1'), ({0, 1, 2}, 'word2')]
+    lexdict = [({0,1}, 'zeroone'), ({0, 2}, 'zerotwo'), ({1, 2}, 'onetwo')]
 
     entries = []
     for meanings, word in lexdict:
@@ -39,12 +39,12 @@ def main():
     # print('Listener probabilities of l0 on hearing word={}:'.format(word))
     # print(a0.listendist(word))
 
-    for level in reversed(range(1, 10)):
+    for level in range(100):
         print('-'*64)
         print('Speaker level:\t{}'.format(level))
         s = Agent(level, lexicon)
-        print('Listener level:\t{}'.format(level-1))
-        l = Agent(level-1, lexicon)
+        print('Listener level:\t{}'.format(level))
+        l = Agent(level, lexicon)
 
         for tgt in lexicon.possible_referents():
             print('Speaker {} goal:\t{}'.format(level, tgt))
@@ -52,9 +52,10 @@ def main():
 
         print()
         for word in lexicon.possible_words():
-            print('Listener {} hears:\t{}'.format(level-1, word))
+            print('Listener {} hears:\t{}'.format(level, word))
             print('\t', l.listendist(word))
 
+        # if level < 90: continue
         print()
         trials = 1000
         print('Some monte-carlo over {} runs'.format(trials))

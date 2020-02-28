@@ -3,18 +3,20 @@
 from utils import *
 from language import LexicalEntry, Lexicon
 from functools import lru_cache, partial
-import numpy as np
+# import numpy as np
+from random import choices, uniform
 
 class Agent:
     agents = dict() # level -> instance
 
     def __init__(self, level=0, lexicon=Lexicon([LexicalEntry(None, 0)]),
-                 error=1e-3):
+                 error=1e-3, noise=lambda bound: uniform(0, 1)*bound):
         '''
         '''
         self.level = level
         self.error = error
         self.lexicon = lexicon
+        self.noise = partial(noise, error if level == 0 else (error/level))
 
         if level > 0 and level-1 not in self.agents:
             self.agents[level-1] = self.__class__(level-1, lexicon, error)
@@ -30,6 +32,8 @@ class Agent:
         be spoken
         '''
         lexicon = self.lexicon
+        noise = self.noise
+
         emission = [] # we will store emission probabilities here
         itoa = dict() # assign an index to each word for later retrieval
         # consider each possible lexical entry
@@ -39,13 +43,13 @@ class Agent:
 
             if self.level == 0:
                 if referent in meaning: # if the word for this lexical entry is the one we want
-                    emission += [log(1-self.error)] # if yes, it is likely to be used
+                    emission += [log((1-self.error) * noise())] # if yes, it is likely to be used
                 else:
-                    emission += [log(self.error)] # otherwise it is (very) unlikely to be used
+                    emission += [log(self.error * noise())] # otherwise it is (very) unlikely to be used
             else:
                 listener = self.agents[self.level-1]
                 dist = listener.listendist(entry.word)
-                emission += [log(dist[referent])]
+                emission += [log(dist[referent] * noise())]
 
         lnorm = normalize_logprobs(emission) # normalize these so they are true log probabilities
         lnorm = {itoa[i]: lprob for i, lprob in enumerate(lnorm)}
@@ -60,13 +64,14 @@ class Agent:
         speaker
         '''
         lexicon = self.lexicon
+
         itor = {i: r for i, r in enumerate(lexicon.possible_referents())}
         refprobs = []
         # consider each possible referent that they could have meant
         for i, r in sorted(itor.items()):
             entry = lexicon[word]
             if self.level == 0: # literal listener
-                refprobs += [log(1-self.error) if r in entry.meaning else log(self.error)]
+                refprobs += [log((1-self.error)) if r in entry.meaning else log(self.error)]
             else:
                 speaker = self.agents[self.level]
                 dist = speaker.speakdist(r)
@@ -85,7 +90,7 @@ class Agent:
         dist = self.speakdist(ref)
         itow = {i: w for i, w in enumerate(dist)}
         probs = [dist[w] for i, w in itow.items()]
-        [i] = np.random.choice([*itow.keys()], 1, p=probs)
+        [i] = choices([*itow.keys()], weights=probs)
         return itow[i]
 
     def listen(self, word):
@@ -96,5 +101,5 @@ class Agent:
         dist = self.listendist(word)
         itor = {i: r for i, r in enumerate(dist)}
         probs = [dist[r] for i, r in itor.items()]
-        [i] = np.random.choice([*itor.keys()], 1, p=probs)
+        [i] = choices([*itor.keys()], weights=probs)
         return itor[i]
