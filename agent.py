@@ -3,8 +3,10 @@
 from utils import *
 from language import LexicalEntry, Lexicon
 from functools import lru_cache, partial
-# import numpy as np
-from random import choices, uniform
+import numpy as np
+from random import uniform
+import sys
+
 
 class Agent:
     agents = dict() # level -> instance
@@ -19,10 +21,10 @@ class Agent:
         self.noise = partial(noise, error if level == 0 else (error/level))
 
         if level > 0 and level-1 not in self.agents:
-            self.agents[level-1] = self.__class__(level-1, lexicon, error)
+            self.__class__(level-1, lexicon, error)
+
         if level not in self.agents:
             self.agents[level] = self
-
 
     @lru_cache(maxsize=None)
     def speakdist(self, referent):
@@ -73,7 +75,7 @@ class Agent:
             if self.level == 0: # literal listener
                 refprobs += [log((1-self.error)) if r in entry.meaning else log(self.error)]
             else:
-                speaker = self.agents[self.level]
+                speaker = self.agents[self.level-1]
                 dist = speaker.speakdist(r)
                 refprobs += [log(dist[word])]
 
@@ -90,7 +92,7 @@ class Agent:
         dist = self.speakdist(ref)
         itow = {i: w for i, w in enumerate(dist)}
         probs = [dist[w] for i, w in itow.items()]
-        [i] = choices([*itow.keys()], weights=probs)
+        [i] = np.random.choice([*itow.keys()], 1, p=probs)
         return itow[i]
 
     def listen(self, word):
@@ -101,5 +103,5 @@ class Agent:
         dist = self.listendist(word)
         itor = {i: r for i, r in enumerate(dist)}
         probs = [dist[r] for i, r in itor.items()]
-        [i] = choices([*itor.keys()], weights=probs)
+        [i] = np.random.choice([*itor.keys()], 1, p=probs)
         return itor[i]
