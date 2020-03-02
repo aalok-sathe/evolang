@@ -2,19 +2,28 @@
 
 from argparse import ArgumentParser
 from collections import Counter, defaultdict
+from tqdm import tqdm
+import random
 
 from utils import *
 from language import Lexicon, LexicalEntry
 from agent import Agent
 
 
-def main():
+def main(args):
     '''
     '''
+    print(args)
+    np.random.seed(args.random_state)
+    random.seed(args.random_state)
+
     print('='*64)
 
-    lexdict = [({0, 1}, 's01'), ({0, 1, 2}, 's012'), ({1, 2, 3}, 's123'),
-               ({1, 2}, 's12')]
+    # lexdict = [({0, 1}, 's01'), ({0, 1, 2}, 's012'), ({1, 2, 3}, 's123'),
+    #            ({1, 2}, 's12')]
+    lexdict = [({0, 1, 2}, 'A'),
+               ({0, 1, 2}, 'B'),
+               ({1, 2}, 'C')]
 
     entries = []
     for meanings, word in lexdict:
@@ -27,17 +36,22 @@ def main():
     print('='*32)
     print()
 
-    generations = 500
-    for level in range(generations):
+    generations = 1000
+    for level in tqdm(range(generations)):
+        s = Agent(level, lexicon)
+        l = Agent(level, lexicon)
+
+        if level < 996: continue
+
         print('-'*64)
         print('Speaker level:\t{}'.format(level))
         # s = Agent(level, lexicon, noise=lambda _: 1)
-        s = Agent(level, lexicon)
         print('Listener level:\t{}'.format(level))
-        l = Agent(level, lexicon)
+
 
         def fmtfloatdict(d):
             return '  '.join(['"{}" : {: >3.4f}'.format(k,v) for k,v in d.items()])
+
 
         for tgt in lexicon.possible_referents():
             print('Speaker {} goal:\t{}'.format(level, tgt))
@@ -48,7 +62,6 @@ def main():
             print('Listener {} hears:\t{}'.format(level, word))
             print('\t', fmtfloatdict(l.listendist(word)))
 
-        if level < generations-2: continue
         print()
         trials = 1000
         print('Monte-carlo over {} runs'.format(trials))
@@ -58,7 +71,7 @@ def main():
                 infr = l.listen(s.speak(r))
                 outcomes[r][infr] += 1
 
-        fmt = '{: >5} '*4
+        fmt = '{: >5} '*len([*lexicon.possible_referents()])
         print(' ', fmt.format(*lexicon.possible_referents()), sep='\t')
         print()
         for r in lexicon.possible_referents():
@@ -70,4 +83,6 @@ def main():
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    main()
+    parser.add_argument('-s', '--random_state', default=None, help='seed', type=int)
+    args = parser.parse_args()
+    main(args)

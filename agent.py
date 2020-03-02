@@ -7,9 +7,13 @@ import numpy as np
 from random import uniform
 import sys
 
+# import resource, sys
+# resource.setrlimit(resource.RLIMIT_STACK, (2**29,-1))
+# sys.setrecursionlimit(10**6)
 
 class Agent:
     agents = dict() # level -> instance
+    calls = [0]
 
     def __init__(self, level=0, lexicon=Lexicon([LexicalEntry(None, 0)]),
                  error=1e-3, noise=lambda bound: uniform(0, 1)*bound):
@@ -20,11 +24,16 @@ class Agent:
         self.lexicon = lexicon
         self.noise = partial(noise, error if level == 0 else (error/level))
 
+        if level not in self.agents:
+            self.agents[level] = self
+
+            for r in lexicon.possible_referents():
+                infr = self.listen(self.speak(r))
+
+        self.calls[-1] += 1 # to track how many calls made
         if level > 0 and level-1 not in self.agents:
             self.__class__(level-1, lexicon, error)
 
-        if level not in self.agents:
-            self.agents[level] = self
 
     @lru_cache(maxsize=None)
     def speakdist(self, referent):
@@ -75,7 +84,7 @@ class Agent:
             if self.level == 0: # literal listener
                 refprobs += [log((1-self.error)) if r in entry.meaning else log(self.error)]
             else:
-                speaker = self.agents[self.level-1]
+                speaker = self.agents[self.level]
                 dist = speaker.speakdist(r)
                 refprobs += [log(dist[word])]
 
